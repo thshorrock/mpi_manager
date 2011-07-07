@@ -24,8 +24,8 @@
 
 
 
-#include "mpi/mpi_manager.hpp"
 #ifdef USING_MPI
+#include "mpi_manager/mpi_manager.hpp"
 
 
 
