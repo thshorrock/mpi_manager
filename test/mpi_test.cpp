@@ -23,18 +23,22 @@
  ***********************************************************************************/
 
 
-#ifdef USING_MPI
+#define BOOST_TEST_MODULE mpi_manager_library_tests
 
-#include "mpi.hpp"
-#include "maths.hpp"
+
+#include "mpi_manager.hpp"
+//#include "maths.hpp"
 
 
 
 #include <boost/test/unit_test.hpp>
 #include <boost/bind.hpp>
 
-namespace mpi = boost::mpi;
 using namespace boost::unit_test;
+
+#ifdef USING_MPI
+
+namespace mpi = boost::mpi;
 using namespace ICR;
 //____________________________________________________________________________//
 
@@ -72,61 +76,69 @@ public:
   void run() {print(); set_result();};
 };
 
+#endif
 
 
-void mpi_manager_test()
+BOOST_AUTO_TEST_SUITE( mpi_manager_test )
+
+BOOST_AUTO_TEST_CASE( general_test  )
 {
+  int a = 1;
+  
+#ifdef USING_MPI
+  // void mpi_manager_test()
+  // {
   //std::cout<<"Testing the MPI library:  This should not take a long time, if you have a long pause now, check the connections between the pcs and maybe do an mpdtrace..."<<std::endl;
 
   mpi::environment env;
   mpi::communicator world;
   
-    size_t size = 5;
-    deque<command_test> inbox;
-    deque<command_test> outbox;
-    deque<command_test> outbox2;
+  size_t size = 5;
+  deque<command_test> inbox;
+  deque<command_test> outbox;
+  deque<command_test> outbox2;
 
-    if (world.rank() ==0) {
-      for (size_t i = 0; i<size; ++i){
-	command_test cmd( i);
-        //cmd.run()
- 	inbox.push_back( cmd  );
-      }
+  if (world.rank() ==0) {
+    for (size_t i = 0; i<size; ++i){
+      command_test cmd( i);
+      //cmd.run()
+      inbox.push_back( cmd  );
     }
-     mpi_manager<command_test> mpi( inbox); //this is all that is required
-     if (world.rank() ==0) {  
-       outbox = mpi.get_outbox();  
+  }
+  mpi_manager<command_test> mpi(world, inbox); //this is all that is required
+  if (world.rank() ==0) {  
+    outbox = mpi.get_outbox();  
        
-       for (size_t i = 0; i<size; ++i){
-	std::cout<<"result["<<i<<"]  = "<<outbox.front().result()<<std::endl;
-        outbox.pop_front();
-      }
-     }
+    for (size_t i = 0; i<size; ++i){
+      std::cout<<"result["<<i<<"]  = "<<outbox.front().result()<<std::endl;
+      outbox.pop_front();
+    }
+  }
      
-    
-     
+# endif
+  // }
 }
 
+BOOST_AUTO_TEST_SUITE_END()
 
-//____________________________________________________________________________//
+// //____________________________________________________________________________//
 
-test_suite*
-init_unit_test_suite( int argc, char* argv[] ) 
-{
+// test_suite*
+// init_unit_test_suite( int argc, char* argv[] ) 
+// {
   
-  framework::master_test_suite().
-    add( BOOST_TEST_CASE( &mpi_manager_test ) );
-  //    framework::master_test_suite().
-  //        add( BOOST_TEST_CASE( boost::bind(
-  //        &test_class::test_method2, tester )));
+//   framework::master_test_suite().
+//     add( BOOST_TEST_CASE( &mpi_manager_test ) );
+//   //    framework::master_test_suite().
+//   //        add( BOOST_TEST_CASE( boost::bind(
+//   //        &test_class::test_method2, tester )));
 
 
-   return 0;
+//    return 0;
 
   
-}
+// }
 
 
 
 
-#endif
