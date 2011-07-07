@@ -16,7 +16,7 @@ namespace mpi = boost::mpi;
 using std::deque;
 
 //! The main Institute of Cancer Research namespace
-namespace institute_of_cancer_research{
+namespace ICR{
 
   enum {
     MPI_REQUEST_JOB,
