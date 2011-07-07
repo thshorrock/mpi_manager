@@ -1,0 +1,38 @@
+
+import testing ;
+
+project icr/src/libs/general/mpi/build//mpi_test
+	: source-location ../../test
+	: default-build <variant>releaseAMD64mp <threading>multi 
+	: build-dir $(TOP)/build
+  	: usage-requirements 
+	  #<include>../../include	
+	  <include>$(BOOST_BASE)
+	: requirements 
+	<include>../../include/	
+	<include>$(BOOST_BASE)
+	#<include>$(TOP)/boost_files
+	#<warnings-as-errors>on
+;
+
+
+unit-test mpi_test 
+	  : mpi_test.cpp
+	    ..//mpi_manager
+            /lib/maths     
+            /us_libs/pulse
+	    $(TOP)//testing-library
+	    $(TOP)//filesystem-library
+	    $(TOP)//mpi-library
+	    $(TOP)//serialization-library
+	  :
+	    <testing.launcher>"mpirun -n 3 "
+	    <include>../../include/
+	    <include>$(BOOST_BASE)
+	    #<include>$(TOP)/boost_files
+      	    <define>BOOST_TEST_DYN_LINK 
+	  ;
+
+
+
+

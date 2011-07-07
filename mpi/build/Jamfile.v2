@@ -1,0 +1,21 @@
+
+#header-only-library
+alias mpi_manager 
+	:  # -no -sources
+	$(TOP)//mpi-library
+	$(TOP)//serialization-library
+	: # -no -build -requirements
+  	: # -no -default -build
+	: # usage-requirements
+	<include>../include
+	<include>$(BOOST_BASE)/
+;
+
+
+
+install  mpi_manager_lib
+	: [ glob ../include/*.hpp ] [ glob ../include/mpi/*.hpp ]
+	: <location>$(TOP)/include  
+	  <install-source-root>../include 
+	  <install-dependencies>on 
+;
