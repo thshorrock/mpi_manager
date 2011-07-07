@@ -1,4 +1,34 @@
+
+/***********************************************************************************
+ ***********************************************************************************
+ **                                                                               **
+ **  Copyright (C) 2011 Tom Shorrock <t.h.shorrock@gmail.com> 
+ **                                                                               **
+ **                                                                               **
+ **  This program is free software; you can redistribute it and/or                **
+ **  modify it under the terms of the GNU General Public License                  **
+ **  as published by the Free Software Foundation; either version 2               **
+ **  of the License, or (at your option) any later version.                       **
+ **                                                                               **
+ **  This program is distributed in the hope that it will be useful,              **
+ **  but WITHOUT ANY WARRANTY; without even the implied warranty of               **
+ **  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                **
+ **  GNU General Public License for more details.                                 **
+ **                                                                               **
+ **  You should have received a copy of the GNU General Public License            **
+ **  along with this program; if not, write to the Free Software                  **
+ **  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.  **
+ **                                                                               **
+ ***********************************************************************************
+ ***********************************************************************************/
+
+
+
 #pragma once
+#ifndef MPI_MANAGER_HPP
+#define MPI_MANAGER_HPP
+
+
 
 #ifdef USING_MPI
 
@@ -163,133 +193,6 @@ namespace ICR{
 }
 
 
-#endif
+#endif  //gaurd for using MPI
 
-
-
-//template <class T> 
-//class mpi_job{
-//
-//};
-
-
-// template <class T>
-// class mpi_batch{
-//   deque<T> m_batch;
-//   size_t m_id; //the id of where the job is going
-// public:
-//   batch(size_t id = 0) : m_batch(), m_id(id) {};
-//   void push_job(T& job){m_batch.push_back(job);};
-//   T pop_job(void) { T ret = m_batch.front(); m_batch.pop_front(); return ret; };
-// };
-
-
-// class
-// mpi_request_batch{
-//   const size_t m_id;
-//   const size_t m_size;
-// public:
-//   mpi_request_batch(size_t size) : m_id(world.id()), m_size(size) {
-//     world.isend(0, MPI_REQUEST_BATCH,*this );
-// };
-//   size_t id() const {return m_id;};
-//   size_t size() const {return m_size;};
-
-// };
-
-
-// class mpi_close_connection{
-//   const size_t m_id;
-// public:
-//   mpi_close_connection() : m_id(world.id()) {};
-//   size_t id() const {return m_id;};
-// };
-  
-
-
-  
-
-
-
-// class mpi_request_jobs{
-//   const size_t m_id;
-//   size_t m_jobs;
-// public:
-//   mpi_request_jobs(size_t jobs = 1) : m_id(world.rank()), m_jobs(jobs) {};
-//   size_t size(){return m_jobs;};
-//   size_t id(){return m_id;};
-// };
-
-
-// class mpi_batch{
-//   size_t m_id;
-//   deque<double> m_batch;
-  
-// public:
-//   double size(){return m_batch.size();};
-//   double get_front(){double d = m_batch.front(); m_batch.pop_front(); return d;};
-//   size_t push_back(){m_batch.push_back();return m_id;};
-//   void push_back(deque<double>& messages_loc, deque<double>& messages, const size_t number)
-//   { for (size_t i = 0; i<number;++i) {
-//       if (main.size() ==0) break
-//       m_batch.push_back(main.front());
-//       messages.pop_front();
-//       messages_loc.push_back(m_id);
-//     };
-//   };
-//   mpi_batch(size_t id): m_id( id);
-//   mpi_batch(size_t id, deque<double>& messages_loc, deque<double>& messages, const size_t number)
-//     : m_id(id)
-//   {
-//     push_back(messages_loc,messages , number);
-//   } 
-// };
-
-
-// enum {
-//   MPI_REQUEST_N_JOBS,
-//   MPI_RECIEVE_JOBS
-// }
-
-// class mpi_manager{
-
-//   deque<double> messages;
-//   deque<size_t> message_loc;
-//   size_t batch_count;
-//   deque<mpi::request> batch_status
-// public:
-//   void add_message(double m){
-//     if (is_node) return;
-//     messages.push_back(m);
-//   };
-//   size_t get_id() {return world.rank();};
-//   bool   is_node(){return if(get_id()==0) return false; else return true;}; 
-//   void request(size_t no_jobs){
-//     if (is_node()) {
-    
-//       size_t id = get_id();
-//       request_jobs = mpi_request_jobs(no_jobs);
-//       world.isend(0, MPI_REQUEST_N_JOBS,request_jobs);
-//       mpi_batch batch;
-//       world.recv(0, MPI_RECIEVE_JOBS , batch);
-//       return batch;
-//     }
-//     else {
-//       //get the number requested;
-//       mpi_request_jobs job_request;
-//       world.recv(0, MPI_REQUEST_N_JOBS,job_request);
-//       //create a batch
-//       mpi_batch batch(job_request.id(),message_loc, messages, job_request.size());
-//       ++batch_count;
-//       //send the job
-//       mpi::request r = world.isend(job_request.id(), MPI_RECIEVE_JOBS, batch);
-//       batch_status.push_back(r);
-//       return batch;
-//     }
-//   }
-//   mpi_manager():messages() batch_count(0),batch_status)();
-//   ~mpi_manager(){
-//     mpi::wait_all(batch_status.begin(),batch_status.end());
-//   }
-
-// }
+#endif  // guard for MPI_MANAGER_HPP
