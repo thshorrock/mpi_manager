@@ -24,7 +24,6 @@
 
 
 
-#ifdef USING_MPI
 #include "mpi_manager/mpi_manager.hpp"
 
 
@@ -37,7 +36,8 @@ ICR::mpi_command_base::mpi_command_base(size_t job_id)
 {}
 
 ICR::mpi_command_base::~mpi_command_base()
-{}
+{
+}
 
 void
 ICR::mpi_command_base::set_id(size_t id)
@@ -72,9 +72,3 @@ ICR::mpi_command_base::set_empty(bool is_empty )
 
 
 
-
-
-
-
-
-#endif
