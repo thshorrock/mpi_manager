@@ -29,6 +29,7 @@
 #ifndef MPI_MANAGER_MPI_MANAGER_HPP
 #define MPI_MANAGER_MPI_MANAGER_HPP
 
+#include "stringify.hpp"
 
 #include <boost/progress.hpp>
 #include <boost/timer.hpp>
@@ -92,24 +93,50 @@ namespace ICR{
 
     virtual void run() = 0;
   };
+  
+  struct mpi_verbose
+  {
+    static void print(const std::string& msg) 
+    {
+      std::cout<<msg<<std::endl;
+    }
+  };
+  struct mpi_quiet
+  {
+    static void print(const std::string&) 
+    {}
+  };
+  
+  struct mpi_progress_bar
+  {
+    mpi_progress_bar(size_t size) : m_pd(size) {};
+    void incr() {++m_pd;}
+    void incr(int) {++m_pd;}
+  private:
+    boost::progress_display m_pd;
+  };
+  
+  struct mpi_no_progress_bar
+  {
+    mpi_no_progress_bar(size_t size){};
+    static void incr(){}
+    static void incr(int){}
+  };
 
-    
-  template <class command >
+  template <class command, class if_verbose = mpi_quiet, class progress_bar = mpi_no_progress_bar>
   class mpi_manager
   {
   private:
     deque< command > m_inbox;
     deque< command > m_outbox;
-    bool m_display;
-    bool m_verbose;
     mpi::communicator m_world;
     //void run();
 
-  public:
-    mpi_manager(){};
-    mpi_manager(const mpi::communicator& world, const deque< command >& inbox, bool display = false, bool verbose = false);
     void operator()();
     void run(){return operator()();};
+  public:
+    mpi_manager(){};
+    mpi_manager(const mpi::communicator& world, const deque< command >& inbox);
     
     ~mpi_manager(){
       //make sure all the processes finish at the same time.
@@ -122,15 +149,17 @@ namespace ICR{
 
 }
 
-template<class command>
-ICR::mpi_manager<command>::mpi_manager(const mpi::communicator& world, const deque< command >& inbox, bool display, bool verbose  )
-  : m_inbox(inbox), m_display(display), m_verbose(verbose), m_world(world)
-{}
+template<class command, class if_verbose, class progress_bar>
+ICR::mpi_manager<command,if_verbose,progress_bar>::mpi_manager(const mpi::communicator& world, const deque< command >& inbox  )
+  : m_inbox(inbox), m_world(world)
+{
+  run(); //run the code
+}
 
 
-template<class command>
+template<class command, class if_verbose, class progress_bar>
 void
-ICR::mpi_manager<command>::operator()()
+ICR::mpi_manager<command,if_verbose,progress_bar>::operator()()
 {
 
  
@@ -144,16 +173,17 @@ ICR::mpi_manager<command>::operator()()
       size_t max_id = 0;
       //the total number of messages to be sent is the size of the inbox  plusa handshake to each of the nodes (-1 because server isn't a node)
       const size_t no_messages = m_inbox.size() + (m_world.size() -1) ;	
-      boost::progress_display* pd;
-      if (m_display && !m_verbose) {pd = new boost::progress_display(no_messages); }
+      progress_bar pb(no_messages);
+      // boost::progress_display* pd;
+      // if (m_display && !m_verbose) {pd = new boost::progress_display(no_messages); }
 
       while (count < no_messages ) { 
         //wait for request   //
         
-        if(m_verbose)  std::cout<<"SERVER: waiting for request"<<std::endl;
+        if_verbose::print("SERVER: waiting for request");
         mpi::status request = m_world.probe(mpi::any_source, MPI_REQUEST_JOB);  //find out where request comes from
        
-        if(m_verbose) std::cout<<"SERVER: request recieved from "<<request.source()<<std::endl;
+        if_verbose::print("SERVER: request recieved from "+stringify(request.source()));
 	  
         //create a job;
         command job;
@@ -162,7 +192,7 @@ ICR::mpi_manager<command>::operator()()
 	  job.set_id(count);  //set the id
           m_inbox.pop_front();     //pop the inbox
           //send job	    //
-	  if(m_verbose)  std::cout<<"SERVER: sending job to "<<request.source()<<std::endl;	  
+	  if_verbose::print("SERVER: sending job to "+stringify(request.source()));
           m_world.send(request.source(),MPI_RECIEVE_JOB, job);
           //create the outbox job
           m_outbox.push_back( job ); //the original job will be altered
@@ -172,7 +202,7 @@ ICR::mpi_manager<command>::operator()()
           if (job.id() > max_id) {max_id = job.id();}
         }
         else{  //there is no job to send  //
-          if(m_verbose) std::cout<<"SERVER: out of jobs!"<<std::endl;
+          if_verbose::print("SERVER: out of jobs!");
           //flag the job as empty and send
           job.set_empty();
           job.set_id(++max_id); //make sure id is unique
@@ -181,16 +211,15 @@ ICR::mpi_manager<command>::operator()()
 	  assync_messages.push_back( m_world.irecv(request.source(),MPI_HANDSHAKE ));
         }
         ++count;  
-        if (m_display && !m_verbose) ++(*pd);
+	pb.incr();
+        //if (m_display && !m_verbose) ++(*pd);
         //close the original job request, the job is done
         m_world.recv(request.source(),MPI_REQUEST_JOB);
       };
-      if (m_display && !m_verbose) delete pd;
-      if(m_verbose)  
-	std::cout<<"SERVER: Waiting for everything to finish ("<< assync_messages.end()-assync_messages.begin() <<" messages)"<<std::endl;
+      //if (m_display && !m_verbose) delete pd;
+      if_verbose::print("SERVER: Waiting for everything to finish (" + stringify(assync_messages.end()-assync_messages.begin()) + " messages)");
       mpi::wait_all(assync_messages.begin(), assync_messages.end());
-      if(m_verbose) 
-	std::cout<<"SERVER: Everything is done"<<std::endl;
+      if_verbose::print("SERVER: Everything is done");
     }
   else //   if client
     {
@@ -199,30 +228,30 @@ ICR::mpi_manager<command>::operator()()
         //request a job from server
         m_world.send(0,MPI_REQUEST_JOB );
         //create a job and wait until it is recieved // 
-        if(m_verbose)  std::cout<<"CLIENT "<< m_world.rank()<<": waiting for a job"<<std::endl;
+        if_verbose::print("CLIENT " + stringify( m_world.rank())+ ": waiting for a job");
         command job;
         m_world.recv(0, MPI_RECIEVE_JOB , job);
         //check to see if there is any data;
         if (job.empty() ) { // 
-          if(m_verbose)  std::cout<<"CLIENT "<< m_world.rank()<<": job recieved is empty"<<std::endl;
+          if_verbose::print("CLIENT " + stringify(m_world.rank()) + ": job recieved is empty");
           still_data = false;
 	  //wait for previous (completed) jobs to be recieved by server
 	  mpi::wait_all(assync_messages.begin(), assync_messages.end());
 	  //handshake 
 	  mpi::request handshake = m_world.isend(0, MPI_HANDSHAKE );
 	  handshake.wait();
-	  if(m_verbose) std::cout<<"HANDSHAKE COMPLETE FOR "<<m_world.rank()<<std::endl;
+	  if_verbose::print("HANDSHAKE COMPLETE FOR "+stringify(m_world.rank()));
 	}
         else {
           //we are good to go.  //  
-          if(m_verbose) std::cout<<"CLIENT "<< m_world.rank()<<": job has data"<<std::endl;
+          if_verbose::print("CLIENT " + stringify( m_world.rank() ) +": job has data");
           job.run();
 	  assync_messages.push_back(m_world.isend(0, job.id(), job ));
         }
       };
     }
 
-  if(m_verbose) std::cout<<"ALL: Complete for "<<m_world.rank()<<std::endl;
+  if_verbose::print("ALL: Complete for "+stringify(m_world.rank()));
 }
 
 BOOST_IS_MPI_DATATYPE(ICR::mpi_command_base)
