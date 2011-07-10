@@ -122,8 +122,14 @@ namespace ICR{
     static void incr(){}
     static void incr(int){}
   };
-
-  template <class command, class if_verbose = mpi_quiet, class progress_bar = mpi_no_progress_bar>
+  
+  struct mpi_no_attachment{};
+  
+  
+  template <class command, 
+	    class attachment_t = mpi_no_attachment,
+	    class if_verbose = mpi_quiet, 
+	    class progress_bar = mpi_no_progress_bar>
   class mpi_manager
   {
   private:
@@ -134,9 +140,33 @@ namespace ICR{
 
     void operator()();
     void run(){return operator()();};
+
+    const attachment_t*  m_attachment;
+    
+    template<class command_t,class attch_t >
+    struct attach
+    {
+      static 
+      void now( command_t& cmd, const attch_t*  attch)
+      {
+	cmd.attach(attch);
+      }
+    };
+
+    //specialize for no_attachment
+    template<class command_t>
+    struct attach<command_t, mpi_no_attachment>
+    {
+      static void 
+      now( command_t&, const mpi_no_attachment* )
+      {}
+    };
   public:
     mpi_manager(){};
-    mpi_manager(const mpi::communicator& world, const deque< command >& inbox);
+    mpi_manager(const mpi::communicator& world, 
+		const deque< command >& inbox,
+		const attachment_t* attachment = 0);
+    
     
     ~mpi_manager(){
       //make sure all the processes finish at the same time.
@@ -149,17 +179,22 @@ namespace ICR{
 
 }
 
-template<class command, class if_verbose, class progress_bar>
-ICR::mpi_manager<command,if_verbose,progress_bar>::mpi_manager(const mpi::communicator& world, const deque< command >& inbox  )
-  : m_inbox(inbox), m_world(world)
+template<class command,class attachment, class if_verbose, class progress_bar>
+ICR::mpi_manager<command,attachment,if_verbose,progress_bar>::mpi_manager
+(const mpi::communicator& world, 
+ const deque< command >& inbox,
+ const attachment*  attch)
+  : m_inbox(inbox), m_world(world), m_attachment(attch)
 {
   run(); //run the code
 }
 
 
-template<class command, class if_verbose, class progress_bar>
+
+
+template<class command, class attachment, class if_verbose, class progress_bar>
 void
-ICR::mpi_manager<command,if_verbose,progress_bar>::operator()()
+ICR::mpi_manager<command,attachment,if_verbose,progress_bar>::operator()()
 {
 
  
@@ -245,6 +280,7 @@ ICR::mpi_manager<command,if_verbose,progress_bar>::operator()()
         else {
           //we are good to go.  //  
           if_verbose::print("CLIENT " + stringify( m_world.rank() ) +": job has data");
+	  attach<command,attachment>::now(job,m_attachment); //attach local data  before run (if there is attachment)
           job.run();
 	  assync_messages.push_back(m_world.isend(0, job.id(), job ));
         }

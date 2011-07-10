@@ -146,8 +146,8 @@ BOOST_AUTO_TEST_CASE( construct_test  )
     }
   }
   mpi_manager<command_test> mpi_default(world, inbox); //this is all that is required
-  mpi_manager<command_test,mpi_verbose> mpi_verbose(world, inbox); //this is all that is required
-  mpi_manager<command_test,mpi_quiet, mpi_progress_bar> mpi_pb(world, inbox); //this is all that is required
+  mpi_manager<command_test,mpi_no_attachment,mpi_verbose> mpi_verbose(world, inbox); //this is all that is required
+  mpi_manager<command_test,mpi_no_attachment,mpi_quiet, mpi_progress_bar> mpi_pb(world, inbox); //this is all that is required
 }
 
 BOOST_AUTO_TEST_CASE( general_test  )
