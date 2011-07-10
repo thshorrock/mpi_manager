@@ -14,13 +14,13 @@ OPTION( USING_MPI "Set to OFF to turn off mpi" ON )
 OPTION( BUILD_MISSING_DEPENDANCIES "Set to OFF to skip building missing dependencies (you might want to build the latest versions yourself)" ON )
 OPTION( BUILD_COVERAGE "Set to ON to generate coverage information (make lcov)" OFF )
 
-if(USING_MPI)
-IF (CMAKE_COMPILER_IS_GNUCC)
-ADD_DEFINITIONS(-DUSING_MPI)
-else()
-ADD_DEFINITIONS(/DUSING_MPI)
-endif()
-endif()
+#if(USING_MPI)
+#IF (CMAKE_COMPILER_IS_GNUCC)
+#ADD_DEFINITIONS(-DUSING_MPI)
+#else()
+#ADD_DEFINITIONS(/DUSING_MPI)
+#endif()
+#endif()
 # Put the libaries and binaries that get built into directories at the
 # top of the build tree rather than in hard-to-find leaf
 # directories.
@@ -104,6 +104,15 @@ ENDIF()
 ##find the boost test suite
 
 FIND_PACKAGE(Boost COMPONENTS test_exec_monitor serialization  mpi REQUIRED) # do we have any boost at all?
+
+##########################################################################
+#  Now gsl subset
+##########################################################################
+set(GSL_DIR cmake)
+find_package(GSL REQUIRED)
+IF(GSL_FOUND)
+  include_directories(${GSL_INCLUDE_DIRS} ${GSLCBLAS_INCLUDE_DIRS})
+ENDIF()
 
 
 ##########################################################################
