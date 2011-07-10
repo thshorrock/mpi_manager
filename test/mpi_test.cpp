@@ -33,27 +33,73 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include "dimensioned_math/rng.hpp"
+#include "dimensioned_math/vec.hpp"
 
 using namespace boost::unit_test;
-
-#ifdef USING_MPI
 
 namespace mpi = boost::mpi;
 using namespace ICR;
 //____________________________________________________________________________//
 
+  
+struct B
+{
+  virtual void set(double d) = 0;
+  virtual double get() const = 0;
+private:
+    friend class boost::serialization::access;
+    // no real serialization required - specify a vestigial one
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int file_version){}
+};
+
+struct T : public B
+{
+  T(double d = 2.0) : B(), m_d(d) {}
+  double m_d;
+  ICR::vec m_v;
+  maths::rng m_r;
+  
+  friend class boost::serialization::access;
+    template<class Archive>  void serialize(Archive & ar, const unsigned int version)
+  {    
+        boost::serialization::base_object<B>(*this);
+    ar& m_d;
+  }
+    
+  void set(double d) {m_d = d;}
+  double get() const {return m_d;}
+  
+};
+
+BOOST_CLASS_EXPORT_GUID(T, "T");
+
 class test_job{ 
     friend class boost::serialization::access;
     template<class Archive>  void serialize(Archive & ar, const unsigned int version)
   {    ar & m_result;  
+    ar& m_t;
   }
   //mpi::communicator world;
   int m_result;
+  boost::shared_ptr<B> m_t;
 
 public:
+
+  void attach(double d)
+  {
+    boost::shared_ptr<T> t(new T(d));
+    m_t = t;
+  }
   void print() {mpi::communicator world; std::cout<<"Hello from process "<<world.rank()<<std::endl;};
-  void set_result(){mpi::communicator world; m_result = world.rank() ;};
-  double result(){ return m_result ;};
+  void set_result(){mpi::communicator world; m_result = world.rank() ;
+    m_t->set(4);
+  };
+  double result(){ return m_result ; };
 };
 
 //class< T >
@@ -73,10 +119,10 @@ public:
     mpi_command_base(job_id),
     test_job()
   {};
-  void run() {print(); set_result();};
+  void run() {print(); 
+    set_result();};
 };
 
-#endif
 
 
 BOOST_AUTO_TEST_SUITE( mpi_manager_test )
@@ -85,7 +131,6 @@ BOOST_AUTO_TEST_CASE( general_test  )
 {
   int a = 1;
   
-#ifdef USING_MPI
   // void mpi_manager_test()
   // {
   //std::cout<<"Testing the MPI library:  This should not take a long time, if you have a long pause now, check the connections between the pcs and maybe do an mpdtrace..."<<std::endl;
@@ -101,6 +146,7 @@ BOOST_AUTO_TEST_CASE( general_test  )
   if (world.rank() ==0) {
     for (size_t i = 0; i<size; ++i){
       command_test cmd( i);
+      cmd.attach(3);
       //cmd.run()
       inbox.push_back( cmd  );
     }
@@ -115,7 +161,6 @@ BOOST_AUTO_TEST_CASE( general_test  )
     }
   }
      
-# endif
   // }
 }
 
