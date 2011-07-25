@@ -59,7 +59,7 @@ namespace ICR{
   const int MPI_HANDSHAKE = 7;
   const int MPI_COUNT_OFFSET = 10;
   
-
+  //The command class that is run on each node inherits from this class.
   class mpi_command_base{
 
     size_t m_id;
@@ -94,6 +94,7 @@ namespace ICR{
     virtual void run() = 0;
   };
   
+  //print messages to console stating whats happening
   struct mpi_verbose
   {
     static void print(const std::string& msg) 
@@ -101,12 +102,14 @@ namespace ICR{
       std::cout<<msg<<std::endl;
     }
   };
+  //don't print
   struct mpi_quiet
   {
     static void print(const std::string&) 
     {}
   };
   
+  //draw a progress bar as to how far the mpi has got (don't use with verbose mode)
   struct mpi_progress_bar
   {
     mpi_progress_bar(size_t size) : m_pd(size) {};
@@ -116,16 +119,18 @@ namespace ICR{
     boost::progress_display m_pd;
   };
   
+  //don't draw the progress bar
   struct mpi_no_progress_bar
   {
     mpi_no_progress_bar(size_t size){};
     static void incr(){}
     static void incr(int){}
   };
-  
+  //attachment is data that is passed to each node before the messages are sent.  
+  // This can make for smaller messages if have initial data that you want to process but don't want to keep sending back and forth.
   struct mpi_no_attachment{};
   
-  
+  //run the mpi
   template <class command, 
 	    class attachment_t = mpi_no_attachment,
 	    class if_verbose = mpi_quiet, 
